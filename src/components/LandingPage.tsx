@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { Play, Music, Zap, Smartphone, Globe, Shield } from 'lucide-react';
+import { Play, Music, Zap, Smartphone, Globe } from 'lucide-react';
 
 interface LandingPageProps {
   onLaunch: () => void;
