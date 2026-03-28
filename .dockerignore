@@ -1,0 +1,10 @@
+node_modules
+dist
+backend/venv
+.git
+.env
+.DS_Store
+*.log
+temp_*.wav
+temp_*.mp3
+backend/__pycache__

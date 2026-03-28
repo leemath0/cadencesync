@@ -1,0 +1,16 @@
+fastapi
+uvicorn
+librosa
+yt-dlp>=2024.3.10
+pydantic
+numpy
+python-multipart
+aiofiles
+musicbrainzngs
+google-api-python-client
+google-auth-oauthlib
+google-auth-httplib2
+isodate
+spotipy
+requests
+python-dotenv

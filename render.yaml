@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: cadencesync
+    env: docker
+    region: singapore
+    plan: free
+    envVars:
+      - key: PORT
+        value: 8123
