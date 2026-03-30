@@ -30,28 +30,76 @@ from dotenv import load_dotenv
 import isodate
 import requests
 from urllib.parse import quote
+import spotipy
+from spotipy.oauth2 import SpotifyClientCredentials
 
 load_dotenv()
 
-# GetSongBPM API Setup (Priority 1)
+# GetSongBPM API Setup
 GETSONGBPM_API_KEY = os.getenv("GETSONGBPM_API_KEY")
 
+# Spotify API Setup (Priority 1)
+SPOTIFY_CLIENT_ID = os.getenv("SPOTIFY_CLIENT_ID")
+SPOTIFY_CLIENT_SECRET = os.getenv("SPOTIFY_CLIENT_SECRET")
+
+def get_spotify_bpm(title, artist):
+    """Fetch BPM from Spotify Audio Features API (Priority 1)"""
+    if not SPOTIFY_CLIENT_ID or not SPOTIFY_CLIENT_SECRET:
+        print("Spotify API Credentials missing. Skipping...")
+        return None
+    try:
+        auth_manager = SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
+        sp = spotipy.Spotify(auth_manager=auth_manager)
+        
+        query = f"track:{title} artist:{artist}"
+        print(f"Spotify Searching: {query}")
+        results = sp.search(q=query, limit=1, type='track')
+        
+        tracks = results.get('tracks', {}).get('items', [])
+        if not tracks:
+            # Try a broader search if specific query fails
+            query_broad = f"{title} {artist}"
+            print(f"Spotify Retrying Broad Search: {query_broad}")
+            results = sp.search(q=query_broad, limit=1, type='track')
+            tracks = results.get('tracks', {}).get('items', [])
+            
+        if tracks:
+            track_id = tracks[0]['id']
+            features = sp.audio_features([track_id])
+            if features and features[0]:
+                tempo = features[0].get('tempo')
+                if tempo:
+                    print(f"Spotify Found: {tempo} BPM")
+                    return float(tempo)
+    except Exception as e:
+        print(f"Spotify API error: {e}")
+    return None
+
 def get_getsongbpm_bpm(title, artist):
-    """Fetch BPM from GetSongBPM API (Priority 1)"""
+    """Fetch BPM from GetSongBPM API (Priority 2)"""
     if not GETSONGBPM_API_KEY:
         print("GetSongBPM API Key missing. Skipping...")
         return None
     try:
-        query = quote(f"{title} {artist}")
-        url = f"https://api.getsongbpm.com/search/?api_key={GETSONGBPM_API_KEY}&type=both&lookup={query}"
+        url = "https://api.getsong.co/search/"
+        # Use title only for lookup as combining artist sometimes causes 'Bad query'
+        params = {
+            "api_key": GETSONGBPM_API_KEY,
+            "type": "song",
+            "lookup": title
+        }
         
-        print(f"GetSongBPM Searching: {title} by {artist}")
-        response = requests.get(url, timeout=10)
+        print(f"GetSongBPM Searching: {title} (Artist: {artist})")
+        response = requests.get(url, params=params, timeout=10)
+        
+        if response.status_code != 200:
+            return None
+            
         data = response.json()
         
         # API often returns a list under the 'search' key
         search_results = data.get('search', [])
-        if search_results and isinstance(search_results, list):
+        if search_results and isinstance(search_results, list) and len(search_results) > 0:
             tempo = search_results[0].get('tempo')
             if tempo:
                 print(f"GetSongBPM Found: {tempo}")
@@ -516,17 +564,22 @@ popular_map = {
 }
     
 def get_bpm_fallback(title, artist, video_id=None):
-    """BPM priority: 1. GetSongBPM, 2. Popular Map, 3. MusicBrainz, 4. librosa"""
+    """BPM priority: 1. Spotify, 2. GetSongBPM, 3. Popular Map, 4. MusicBrainz, 5. librosa"""
     safe_title = title.encode('utf-8', errors='replace').decode('utf-8')
     safe_artist = artist.encode('utf-8', errors='replace').decode('utf-8')
     print(f"BPM Search Hierarchy for: {safe_title} by {safe_artist}")
     
-    # 1. GetSongBPM API (Priority 1)
+    # 1. Spotify Audio Features API (Priority 1)
+    spotify_bpm = get_spotify_bpm(title, artist)
+    if spotify_bpm:
+        return spotify_bpm
+
+    # 2. GetSongBPM API (Priority 2)
     getsongbpm_bpm = get_getsongbpm_bpm(title, artist)
     if getsongbpm_bpm:
         return getsongbpm_bpm
 
-    # 2. Popular songs mapping (Priority 2) - ID based then Keyword
+    # 3. Popular songs mapping (Priority 3) - ID based then Keyword
     if video_id and video_id in popular_map:
         print(f"Direct ID match success: {video_id} -> {popular_map[video_id]}")
         return popular_map[video_id]
@@ -540,7 +593,7 @@ def get_bpm_fallback(title, artist, video_id=None):
             print(f"Intelligent keyword match success: {key} -> {bpm}")
             return bpm
 
-    # 2. MusicBrainz API search
+    # 4. MusicBrainz API search (Priority 4)
     try:
         query = f'recording:"{title}" AND artist:"{artist}"'
         result = musicbrainzngs.search_recordings(query=query, limit=3)

@@ -7,3 +7,7 @@ services:
     envVars:
       - key: PORT
         value: 8123
+      - key: GOOGLE_CLIENT_ID
+        value: 769143383141-p64uvoad4is15vdqoeruhs8r0qmn3cce.apps.googleusercontent.com
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false

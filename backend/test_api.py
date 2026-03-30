@@ -8,9 +8,9 @@ if hasattr(sys.stdout, 'reconfigure'):
 
 url = "http://127.0.0.1:8123/api/analyze"
 data = {
-    "url": "https://www.youtube.com/watch?v=6VfF9_4B03A", # VVS - Mirani etc.
-    "title": "VVS",
-    "artist": "Mirani"
+    "url": "https://www.youtube.com/watch?v=4NRXx6nd6W4",
+    "title": "Blinding Lights",
+    "artist": "The Weeknd"
 }
 try:
     print(f"Sending request to {url} for VVS - Mirani...")

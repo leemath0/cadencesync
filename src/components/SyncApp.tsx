@@ -160,11 +160,31 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   }, []);
 
   useEffect(() => {
+    // Persistent Session Check & Initial Fetch
+    const savedSession = localStorage.getItem('cs-session-id');
+    const savedUser = localStorage.getItem('cs-user');
+    
+    if (savedSession && savedSession !== 'null' && !sessionId) {
+      setSessionId(savedSession);
+      if (savedUser) setUser(JSON.parse(savedUser));
+    }
+    
     if (sessionId) {
       localStorage.setItem('cs-session-id', sessionId);
       fetchPlaylists();
+      
+      // Auto-load last URL if available
+      const lastUrl = localStorage.getItem('cs-last-url');
+      if (lastUrl && !url) setUrl(lastUrl);
     }
   }, [sessionId]);
+
+  // Save last URL for persistence
+  useEffect(() => {
+    if (url && url.includes('youtube.com')) {
+      localStorage.setItem('cs-last-url', url);
+    }
+  }, [url]);
 
   const fetchPlaylists = async () => {
     if (!sessionId) return;
@@ -568,6 +588,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const syncStartRequestedRef = useRef<boolean>(false);
   const upcomingBeatTimeRef = useRef<number>(0);
   const lastProcessedTrackIdRef = useRef<string | null>(null);
+  const lastSyncCheckTimeRef = useRef<number>(0);
 
   // Unified calculation helper
   const getPlaybackCalc = (tgt: number, orig: number, mode: string) => {
@@ -698,19 +719,16 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           
           setLastSyncError(Math.round(errorMs));
 
-          const { rate: baseRate } = getPlaybackCalc(targetBpm, origBpm, playbackMode);
-          
-          // Proportional gain: adjust rate by 0.1% per 10ms error
-          // If error > 0 (song ahead), slow down.
-          const kP = -0.0001; 
-          const correction = errorMs * kP;
-          
-          // Cap the correction to +- 0.02 (2%) to keep it smooth
-          const limitedCorrection = Math.max(-0.02, Math.min(0.02, correction));
-          const targetPlaybackRate = baseRate + limitedCorrection;
-          
-          if (Math.abs(player.getPlaybackRate() - targetPlaybackRate) > 0.001) {
-              player.setPlaybackRate(targetPlaybackRate);
+          // --- 2. NEW Periodic Drift Correction (Every 5s) ---
+          const now = Date.now();
+          if (now - lastSyncCheckTimeRef.current > 5000) {
+              // If error is more than 300ms, seek to align
+              if (Math.abs(errorMs) > 300) {
+                  const correctedSongTime = nearestBeat * songBeatDuration + firstBeatOffset;
+                  player.seekTo(correctedSongTime, true);
+                  console.log(`[Sync] Drift correction: ${errorMs.toFixed(0)}ms. Seeking to ${correctedSongTime.toFixed(2)}s`);
+              }
+              lastSyncCheckTimeRef.current = now;
           }
 
           // --- 3. LIVE MEASURE COUNTING ---
@@ -722,12 +740,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           } else {
             setCurrentMeasure(`${measure}M-${beatInMeasure}`);
           }
-      } else if (isPlaying && player && player.getPlaybackRate && player.setPlaybackRate) {
-          // Fallback if not optimized: just use base rate from mode
-          const { rate: targetPlaybackRate } = getPlaybackCalc(targetBpm, currentTrack?.originalBpm || targetBpm, playbackMode);
-          if (Math.abs(player.getPlaybackRate() - targetPlaybackRate) > 0.01) {
-              player.setPlaybackRate(targetPlaybackRate);
-          }
+      } else if (isPlaying && player && player.getPlaybackRate) {
           setCurrentMeasure('---');
       }
 
@@ -792,12 +805,9 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
         </div>
       )}
 
-      {/* Floating Video Preview - Restored for visibility & sync verification */}
-      <div className="fixed top-24 right-6 w-[200px] aspect-video z-[60] bg-black rounded-2xl overflow-hidden border border-white/10 shadow-2xl opacity-80 hover:opacity-100 transition-opacity group">
-        <div id="yt-player" className="w-full h-full"></div>
-        <div className={`absolute inset-0 ${!isPlaying ? 'bg-black/60' : 'bg-transparent'} transition-colors flex items-center justify-center p-2 text-center text-[10px] text-white/50 font-bold pointer-events-none`}>
-          {!isPlaying && "Video Preview"}
-        </div>
+      {/* YT Player (Hidden but active for sync logic) */}
+      <div className="fixed -z-50 opacity-0 pointer-events-none">
+        <div id="yt-player"></div>
       </div>
 
       {/* Global Toast Notification */}
@@ -1025,6 +1035,27 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                Paste any YouTube playlist. We analyze the drum beats and auto-shift every track to match your target cadence exactly.
              </p>
           </div>
+
+          {/* Prominent Login Card for Mobile/Unauthenticated Users */}
+          {!sessionId && (
+            <div className="mb-8 p-6 rounded-[28px] bg-gradient-to-br from-neon/20 to-neon/5 border border-neon/30 flex flex-col items-center gap-4 animate-in slide-in-from-top-4 duration-500">
+               <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-1">
+                 <svg className="w-6 h-6 text-neon" viewBox="0 0 24 24">
+                   <path fill="currentColor" d="M12.545,10.239v3.821h5.445c-0.712,2.315-2.647,3.972-5.445,3.972c-3.332,0-6.033-2.701-6.033-6.032s2.701-6.032,6.033-6.032c1.498,0,2.866,0.549,3.921,1.453l2.814-2.814C17.503,2.988,15.139,2,12.545,2C7.021,2,2.543,6.477,2.543,12s4.478,10,10.002,10c8.396,0,10.249-7.85,9.426-11.748L12.545,10.239z"/>
+                 </svg>
+               </div>
+               <div className="text-center">
+                 <h2 className="text-white font-black text-[13px] uppercase tracking-widest mb-1">Unlock YouTube Library</h2>
+                 <p className="text-gray-400 text-[11px] leading-snug">Connect your account to sync playlists directly and save your progress.</p>
+               </div>
+               <button 
+                 onClick={loginWithGoogle}
+                 className="w-full py-4 bg-neon text-black rounded-2xl font-black text-[14px] shadow-[0_0_20px_rgba(171,252,47,0.3)] hover:scale-[1.02] active:scale-[0.98] transition-all"
+               >
+                 LOGIN WITH GOOGLE
+               </button>
+            </div>
+          )}
 
           <div className="bg-gradient-to-br from-[#121212] to-[#0a0a0a] border border-white/10 rounded-[28px] p-8 mb-8 flex flex-col items-center shadow-2xl relative overflow-hidden">
              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-56 h-56 bg-neon opacity-[0.03] blur-[50px] rounded-full pointer-events-none"></div>
