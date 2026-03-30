@@ -692,8 +692,8 @@ async def analyze_track(request: AnalyzeRequest, response: Response):
                     # Harmonic-Percussive Source Separation
                     _, y_percussive = librosa.effects.hpss(y)
                     
-                    # Beat tracking
-                    bpm_val, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr)
+                    # Beat tracking with 50-250 BPM priority
+                    bpm_val, beat_frames = librosa.beat.beat_track(y=y_percussive, sr=sr, start_bpm=120, tightness=100)
                     
                     # Ensure bpm_val is a float
                     if isinstance(bpm_val, np.ndarray):
