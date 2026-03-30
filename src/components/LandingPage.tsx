@@ -8,7 +8,7 @@ interface LandingPageProps {
 
 const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
   return (
-    <div className="relative min-h-screen bg-[#050505] overflow-hidden">
+    <div className="relative min-h-screen bg-[#050505] overflow-x-hidden">
       {/* Dynamic Background Elements */}
       <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-neon/10 rounded-full blur-[120px] animate-pulse"></div>
       <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-blue-500/10 rounded-full blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
@@ -16,10 +16,11 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
       {/* Header */}
       <header className="relative z-10 flex items-center justify-between px-8 py-6 max-w-7xl mx-auto">
         <div className="flex items-center gap-2">
-          <div className="w-10 h-10 bg-neon rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(171,252,47,0.4)]">
-            <Zap size={24} className="text-black fill-black" />
+          <div className="w-8 h-8 md:w-10 md:h-10 bg-neon rounded-lg md:rounded-xl flex items-center justify-center shadow-[0_0_20px_rgba(171,252,47,0.4)]">
+            <Zap size={18} className="text-black fill-black md:hidden" />
+            <Zap size={24} className="text-black fill-black hidden md:block" />
           </div>
-          <span className="text-2xl font-black italic tracking-tighter">CADENCE<span className="text-neon">SYNC</span></span>
+          <span className="text-xl md:text-2xl font-black italic tracking-tighter">CADENCE<span className="text-neon">SYNC</span></span>
         </div>
         <nav className="hidden md:flex items-center gap-8 text-[11px] font-black uppercase tracking-[0.2em] text-gray-400">
           <a href="#features" className="hover:text-neon transition-colors">Features</a>
@@ -28,7 +29,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
         </nav>
         <button 
           onClick={onLaunch}
-          className="px-6 py-2.5 bg-white/5 border border-white/10 rounded-full text-[11px] font-black uppercase tracking-widest hover:bg-white/10 hover:border-neon/50 transition-all"
+          className="px-4 md:px-6 py-2 md:py-2.5 bg-white/5 border border-white/10 rounded-full text-[10px] md:text-[11px] font-black uppercase tracking-widest hover:bg-white/10 hover:border-neon/50 transition-all whitespace-nowrap"
         >
           Launch App
         </button>
@@ -46,22 +47,22 @@ const LandingPage: React.FC<LandingPageProps> = ({ onLaunch }) => {
               <span className="w-2 h-2 bg-neon rounded-full animate-ping"></span>
               <span className="text-[10px] font-black text-neon uppercase tracking-widest">Version 2.0 Early Access</span>
             </div>
-            <h1 className="text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-8">
-              SYNC YOUR <br />
-              <span className="text-neon drop-shadow-[0_0_30px_rgba(171,252,47,0.3)]">PERFORMANCE</span> <br />
+            <h1 className="text-4xl sm:text-6xl md:text-8xl font-black leading-[0.9] tracking-tighter mb-8 break-words">
+              SYNC YOUR <br className="hidden sm:block" />
+              <span className="text-neon drop-shadow-[0_0_30px_rgba(171,252,47,0.3)]">PERFORMANCE</span> <br className="hidden sm:block" />
               TO THE BEAT
             </h1>
             <p className="text-xl text-gray-400 max-w-xl mb-12 leading-relaxed">
               The ultimate AI-powered metronome for athletes. Synchronize your cycling, running, or rowing cadence with YouTube music in real-time.
             </p>
-            <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               <button 
                 onClick={onLaunch}
-                className="px-10 py-5 bg-neon text-black rounded-2xl text-lg font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(171,252,47,0.3)] flex items-center gap-3"
+                className="w-full sm:w-auto px-8 md:px-10 py-4 md:py-5 bg-neon text-black rounded-2xl text-base md:text-lg font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-[0_0_30px_rgba(171,252,47,0.3)] flex items-center justify-center gap-3"
               >
-                <Play size={20} fill="black" /> Get Started Now
+                <Play size={20} fill="black" /> Get Started
               </button>
-              <button className="px-10 py-5 bg-white/5 border border-white/10 rounded-2xl text-lg font-black uppercase tracking-widest hover:bg-white/10 transition-all">
+              <button className="w-full sm:w-auto px-8 md:px-10 py-4 md:py-5 bg-white/5 border border-white/10 rounded-2xl text-base md:text-lg font-black uppercase tracking-widest hover:bg-white/10 transition-all">
                 Learn More
               </button>
             </div>

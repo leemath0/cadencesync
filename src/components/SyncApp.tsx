@@ -112,6 +112,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
   const [authCodeProcessed, setAuthCodeProcessed] = useState(false);
   const [isLoadingFull, setIsLoadingFull] = useState(false);
+  const [activeTab, setActiveTab] = useState<'session' | 'statistics'>('session');
   
   // YouTube IFrame Player Refs
   const playerRef = useRef<any>(null);
@@ -887,7 +888,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
 
 
   return (
-    <div className="flex flex-col h-screen bg-[#050505] text-white font-sans overflow-hidden select-none">
+    <div className="flex flex-col h-screen bg-[#050505] text-white font-sans overflow-x-hidden select-none">
       {/* Global Full-Screen Loader for Authentication */}
       {isLoadingFull && (
         <div className="fixed inset-0 z-[100] bg-black/90 backdrop-blur-xl flex flex-col items-center justify-center">
@@ -979,22 +980,22 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
 
       {/* Top Navbar */}
       <header className="h-[64px] border-b border-white/[0.04] bg-[#080808]/90 backdrop-blur-xl flex items-center px-6 flex-shrink-0 z-50 sticky top-0">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 md:gap-3">
           <button 
             onClick={onBack}
-            className="p-2 -ml-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors mr-1"
+            className="p-1.5 md:p-2 -ml-1 md:-ml-2 hover:bg-white/5 rounded-full text-gray-400 hover:text-white transition-colors mr-0.5 md:mr-1"
             title="Back to Landing Page"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
+            <svg className="w-4 h-4 md:w-5 md:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 19l-7-7 7-7" /></svg>
           </button>
-          <svg className="w-7 h-7 text-neon drop-shadow-[0_0_10px_rgba(171,252,47,0.4)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <svg className="w-5 h-5 md:w-7 md:h-7 text-neon drop-shadow-[0_0_10px_rgba(171,252,47,0.4)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
           </svg>
-          <span className="text-xl font-black tracking-widest text-white mt-0.5">CADENCE<span className="text-neon">SYNC</span></span>
+          <span className="text-sm md:text-xl font-black tracking-widest text-white mt-0.5 whitespace-nowrap">CADENCE<span className="text-neon">SYNC</span></span>
         </div>
         
-        <div className="ml-auto flex items-center gap-4">
-          <div className="flex items-center bg-white/[0.03] rounded-2xl p-1.5 border border-white/[0.05]">
+        <div className="ml-auto flex items-center gap-2 md:gap-4 font-bold">
+          <div className="hidden sm:flex items-center bg-white/[0.03] rounded-2xl p-1.5 border border-white/[0.05]">
             <div className="px-3 py-1 flex items-center gap-3">
               <span className="text-[10px] text-gray-500 font-black uppercase tracking-wider">Auto-Play</span>
               <button 
@@ -1007,25 +1008,25 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           </div>
 
           {sessionId ? (
-            <div className="flex items-center gap-3 bg-white/5 pl-3 pr-1 py-1 rounded-full border border-white/10">
+            <div className="flex items-center gap-2 md:gap-3 bg-white/5 pl-2 md:pl-3 pr-1 py-1 rounded-full border border-white/10 overflow-hidden">
               <div className="flex flex-col items-end">
-                <span className="text-[10px] uppercase font-black text-neon tracking-wider">Connected</span>
-                {user?.name && <span className="text-[11px] font-bold text-gray-400 truncate max-w-[80px]">{user.name}</span>}
+                <span className="text-[8px] md:text-[10px] uppercase font-black text-neon tracking-wider">ON</span>
+                {user?.name && <span className="text-[9px] md:text-[11px] font-bold text-gray-400 truncate max-w-[50px] md:max-w-[80px]">{user.name}</span>}
               </div>
               <button 
                 onClick={handleLogout}
-                className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
+                className="w-7 h-7 md:w-8 md:h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors"
                 title="Logout"
               >
-                <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+                <svg className="w-3 h-3 md:w-4 md:h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
               </button>
             </div>
           ) : (
             <button 
               onClick={loginWithGoogle}
-              className="px-4 py-2 rounded-full border border-white/10 hover:bg-white/5 text-[12px] font-bold transition-all flex items-center gap-2"
+              className="px-3 md:px-4 py-1.5 md:py-2 rounded-full border border-white/10 hover:bg-white/5 text-[11px] md:text-[12px] font-black transition-all flex items-center gap-1.5"
             >
-              <svg className="w-4 h-4" viewBox="0 0 24 24">
+              <svg className="w-3.5 h-3.5 md:w-4 md:h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.27.81-.57z"/>
@@ -1036,10 +1037,10 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           )}
           <button 
             onClick={() => setShowQr(!showQr)}
-            className={`p-2 rounded-full transition-all duration-300 ${showQr ? 'bg-neon text-black' : 'text-gray-400 hover:text-white'}`}
+            className={`p-1.5 md:p-2 rounded-full transition-all duration-300 ${showQr ? 'bg-neon text-black' : 'text-gray-400 hover:text-white'}`}
             title="Scan QR to open on phone"
           >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 md:w-6 md:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <rect x="3" y="3" width="7" height="7" rx="1" />
               <rect x="14" y="3" width="7" height="7" rx="1" />
               <rect x="3" y="14" width="7" height="7" rx="1" />
@@ -1125,10 +1126,10 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
         {/* Left Control Panel */}
         <aside className="w-full md:w-[450px] flex-shrink-0 bg-[#080808] md:bg-[#0c0c0c] md:border-r border-white/5 flex flex-col p-6 md:p-8 relative z-10 md:h-full md:overflow-y-auto">
           
-          <div className="mb-8 mt-2">
-             <h1 className="text-3xl font-black text-white leading-tight mb-3">SYNC YOUR RUN</h1>
-             <p className="text-gray-400 text-[15px] leading-relaxed font-medium">
-               Paste any YouTube playlist. We analyze the drum beats and auto-shift every track to match your target cadence exactly.
+          <div className="mb-6 md:mb-8 mt-2">
+             <h1 className="text-2xl md:text-3xl font-black text-white leading-tight mb-3">SYNC YOUR RUN</h1>
+             <p className="text-gray-400 text-sm md:text-[15px] leading-relaxed font-medium">
+               Paste any YouTube playlist. We analyze the drum beats and auto-shift track speeds to match your SPM exactly.
              </p>
           </div>
 
@@ -1178,9 +1179,9 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                           </svg>
                         </button>
-                        <span className="text-[5.5rem] leading-none font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">{targetBpm}</span>
+                        <span className="text-7xl md:text-[5.5rem] leading-none font-black text-white tracking-tighter tabular-nums drop-shadow-2xl">{targetBpm}</span>
                     </div>
-                    <span className="text-[13px] font-bold text-gray-500 tracking-[0.1em] mt-3">SPM (BPM)</span>
+                    <span className="text-[11px] md:text-[13px] font-bold text-gray-500 tracking-[0.1em] mt-2 md:mt-3">SPM (BPM)</span>
                   </div>
                   
                   <button 
@@ -1234,8 +1235,8 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
              </div>
 
              {/* Global Playback Mode Toggle */}
-             <div className="flex items-center gap-1 bg-[#181818] p-1 rounded-2xl mt-4 border border-white/5 w-full">
-                <div className="flex flex-wrap gap-2 w-full">
+              <div className="flex items-center gap-1 bg-[#181818] p-1 rounded-2xl mt-4 border border-white/5 w-full">
+                <div className="grid grid-cols-4 gap-1 w-full">
                     {[
                       { id: 'original', label: 'ORIG', bpm: 'N/A' },
                       { id: 'target', label: 'TARGET', bpm: targetBpm },
@@ -1245,16 +1246,16 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                       <button
                         key={mode.id}
                         onClick={() => setPlaybackMode(mode.id as any)}
-                        className={`group flex-1 flex flex-col items-center justify-center h-[50px] rounded-xl text-[10px] font-bold transition-all ${playbackMode === mode.id ? 'bg-neon text-black shadow-lg' : 'bg-white/5 text-gray-500 hover:text-white border border-white/5 hover:border-white/20'}`}
+                        className={`group flex flex-col items-center justify-center p-2 rounded-xl text-[9px] font-black transition-all ${playbackMode === mode.id ? 'bg-neon text-black shadow-lg' : 'bg-white/5 text-gray-500 hover:text-white border border-white/5 hover:border-white/20'}`}
                       >
-                        <span className="leading-none mb-1">{mode.label}</span>
-                        <span className={`text-[9px] font-black opacity-60 ${playbackMode === mode.id ? 'text-black/80' : 'text-gray-600'}`}>
+                        <span className="leading-none mb-0.5">{mode.label}</span>
+                        <span className={`text-[8px] opacity-70 ${playbackMode === mode.id ? 'text-black/80' : 'text-gray-600'}`}>
                           {mode.bpm}
                         </span>
                       </button>
                     ))}
                   </div>
-             </div>
+              </div>
           </div>
 
           <div className="flex flex-col gap-4 mt-auto mb-6 md:mb-0">
@@ -1466,21 +1467,15 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                                    )}
                                 </div>
                                 
-                                <div className="flex-1 min-w-0 pr-2 pt-0.5">
-                                   <div className="flex items-center gap-2">
-                                     <h4 className={`text-[15px] md:text-[15px] leading-tight truncate ${active ? 'text-white font-black' : 'text-gray-200 font-bold'}`}>
-                                       {track.title}
-                                     </h4>
-                                   </div>
-                                   {track.status === 'error' ? (
-                                      <p className="text-[12px] md:text-[13px] text-red-400 font-medium truncate mt-1" title={track.errorMessage}>🚨 {track.errorMessage || '분석 실패'}</p>
-                                   ) : (
-                                      <div className="flex items-center gap-2 mt-1 min-h-[20px]">
-                                         <p className={`text-[13px] md:text-[13px] font-medium truncate ${active ? 'text-gray-300' : 'text-gray-500'}`}>
-                                           {track.artist}
-                                         </p>
-                                      </div>
-                                   )}
+                                <div className="flex-1 min-w-0 pr-1 md:pr-0">
+                                  <h4 className="font-black text-[13px] md:text-[15px] text-white leading-tight mb-1 truncate group-hover:text-neon transition-colors">
+                                    {track.title}
+                                  </h4>
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-[10px] md:text-[12px] text-gray-500 font-bold truncate max-w-[120px] md:max-w-none">{track.artist}</p>
+                                    <span className="w-1 h-1 rounded-full bg-white/10 hidden md:block" />
+                                    <span className="text-[10px] text-gray-600 font-black hidden md:block">320kbps</span>
+                                  </div>
                                 </div>
                                 
                                 <div className="w-20 md:w-32 text-right flex flex-col items-end gap-1">
