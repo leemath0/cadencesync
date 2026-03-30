@@ -585,6 +585,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const nextTickTimeRef = useRef<number>(0);
   const lastScheduledBeatIndexRef = useRef<number>(0);
   const wakeLockRef = useRef<any>(null);
+  const silentAudioRef = useRef<HTMLAudioElement | null>(null);
   const syncStartRequestedRef = useRef<boolean>(false);
   const upcomingBeatTimeRef = useRef<number>(0);
   const lastProcessedTrackIdRef = useRef<string | null>(null);
@@ -603,6 +604,24 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
     }
   };
 
+  // --- Silent Audio Trick ---
+  const startSilentAudio = () => {
+    if (!silentAudioRef.current) {
+      // 1-second silent MP3 base64
+      const silentSrc = "data:audio/wav;base64,UklGRigAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAAAAA==";
+      const audio = new Audio(silentSrc);
+      audio.loop = true;
+      silentAudioRef.current = audio;
+    }
+    silentAudioRef.current.play().catch(e => console.log("Silent audio failed", e));
+  };
+
+  const stopSilentAudio = () => {
+    if (silentAudioRef.current) {
+      silentAudioRef.current.pause();
+    }
+  };
+
   // --- Wake Lock Logic ---
   const requestWakeLock = async () => {
     if ('wakeLock' in navigator) {
@@ -616,14 +635,21 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   };
 
   useEffect(() => {
+    // Start Background Stability
     requestWakeLock();
+    startSilentAudio();
+
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         requestWakeLock();
+        startSilentAudio();
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      stopSilentAudio();
+    };
   }, []);
 
   // --- Media Session API ---
