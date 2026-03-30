@@ -583,12 +583,88 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const nextTickTimeRef = useRef<number>(0);
-  const lastSteadyTickTimeRef = useRef<number>(0);
-  const lastScheduledBeatIndexRef = useRef<number>(-1);
+  const lastScheduledBeatIndexRef = useRef<number>(0);
+  const wakeLockRef = useRef<any>(null);
   const syncStartRequestedRef = useRef<boolean>(false);
   const upcomingBeatTimeRef = useRef<number>(0);
   const lastProcessedTrackIdRef = useRef<string | null>(null);
   const lastSyncCheckTimeRef = useRef<number>(0);
+  const lastSteadyTickTimeRef = useRef<number>(0);
+
+  const playNext = () => {
+    if (tracks.length > 0) {
+      setCurrentTrackIndex((prev) => (prev + 1) % tracks.length);
+    }
+  };
+
+  const playPrevious = () => {
+    if (tracks.length > 0) {
+      setCurrentTrackIndex((prev) => (prev - 1 + tracks.length) % tracks.length);
+    }
+  };
+
+  // --- Wake Lock Logic ---
+  const requestWakeLock = async () => {
+    if ('wakeLock' in navigator) {
+      try {
+        wakeLockRef.current = await (navigator as any).wakeLock.request('screen');
+        console.log('[Sync] Wake Lock is active');
+      } catch (err: any) {
+        console.error(`[Sync] Wake Lock failed: ${err.name}, ${err.message}`);
+      }
+    }
+  };
+
+  useEffect(() => {
+    requestWakeLock();
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, []);
+
+  // --- Media Session API ---
+  useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title,
+        artist: currentTrack.artist,
+        album: 'CadenceSync',
+        artwork: [
+          { src: currentTrack.thumbnail, sizes: '96x96', type: 'image/png' },
+          { src: currentTrack.thumbnail, sizes: '128x128', type: 'image/png' },
+          { src: currentTrack.thumbnail, sizes: '192x192', type: 'image/png' },
+          { src: currentTrack.thumbnail, sizes: '256x256', type: 'image/png' },
+          { src: currentTrack.thumbnail, sizes: '384x384', type: 'image/png' },
+          { src: currentTrack.thumbnail, sizes: '512x512', type: 'image/png' },
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        if (playerRef.current) {
+          playerRef.current.playVideo();
+          setIsPlaying(true);
+        }
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        if (playerRef.current) {
+          playerRef.current.pauseVideo();
+          setIsPlaying(false);
+        }
+      });
+      navigator.mediaSession.setActionHandler('previoustrack', () => playPrevious());
+      navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
+    }
+  }, [currentTrack]);
+
+  useEffect(() => {
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
+    }
+  }, [isPlaying]);
 
   // Unified calculation helper
   const getPlaybackCalc = (tgt: number, orig: number, mode: string) => {
@@ -667,13 +743,10 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       osc.stop(time + 0.02);
     };
 
-    let animationFrameId: number;
+    let timer: any;
 
     const tick = () => {
-      if (!audioCtxRef.current) {
-          animationFrameId = requestAnimationFrame(tick);
-          return;
-      }
+      if (!audioCtxRef.current) return;
       
       const ctx = audioCtxRef.current;
       const ctxTime = ctx.currentTime;
@@ -681,7 +754,8 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       const beatDuration = 60.0 / targetBpm;
 
       // --- 1. WEB AUDIO SCHEDULER (Metronome Beats) ---
-      const scheduleAhead = 0.1; // 100ms
+      // Increased scheduleAhead to 2.0s for better background stability
+      const scheduleAhead = 2.0; 
       while (nextTickTimeRef.current < ctxTime + scheduleAhead) {
           // If initializing or lagging, reset baseline
           if (nextTickTimeRef.current < ctxTime - 1.0) {
@@ -705,24 +779,17 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           const origBpm = currentTrack.originalBpm || targetBpm;
           const firstBeatOffset = currentTrack.firstBeatOffset || 0;
           
-          // Phase calculation: where should we be in the song loop relative to the metronome loop
           const songElapsed = songTime - firstBeatOffset;
           const songBeatDuration = 60.0 / origBpm;
-          
-          // Current theoretical beat position in the song
           const songBeatPos = songElapsed / songBeatDuration;
           const nearestBeat = Math.round(songBeatPos);
-          
-          // The error in seconds (how many seconds the song is away from the nearest beat)
           const errorInSeconds = songElapsed - (nearestBeat * songBeatDuration);
           const errorMs = errorInSeconds * 1000;
           
           setLastSyncError(Math.round(errorMs));
 
-          // --- 2. NEW Periodic Drift Correction (Every 5s) ---
           const now = Date.now();
           if (now - lastSyncCheckTimeRef.current > 5000) {
-              // If error is more than 300ms, seek to align
               if (Math.abs(errorMs) > 300) {
                   const correctedSongTime = nearestBeat * songBeatDuration + firstBeatOffset;
                   player.seekTo(correctedSongTime, true);
@@ -731,10 +798,8 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
               lastSyncCheckTimeRef.current = now;
           }
 
-          // --- 3. LIVE MEASURE COUNTING ---
           const measure = Math.floor(songBeatPos / 4) + 1;
           const beatInMeasure = Math.floor(Math.abs(songBeatPos) % 4) + 1;
-          
           if (songBeatPos < 0) {
             setCurrentMeasure(`INTRO (${Math.abs(songBeatPos).toFixed(1)}b)`);
           } else {
@@ -744,23 +809,20 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           setCurrentMeasure('---');
       }
 
-      // Handle Sync-Start Request
       if (syncStartRequestedRef.current && player) {
-          // Align starting to the next metronome beat (the one we just scheduled or is about to hit)
           if (ctxTime >= upcomingBeatTimeRef.current - 0.05) {
               player.playVideo();
               setIsPlaying(true);
               syncStartRequestedRef.current = false;
           }
       }
-      
-      animationFrameId = requestAnimationFrame(tick);
     };
     
-    animationFrameId = requestAnimationFrame(tick);
+    // Interval based loop (50ms) for better background reliability than requestAnimationFrame
+    timer = setInterval(tick, 50) as any;
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      clearInterval(timer);
       window.removeEventListener('click', handleInteraction);
     };
   }, [isPlaying, targetBpm, metronomeOn, currentTrackIndex, metronomeVolume, playbackMode]);
