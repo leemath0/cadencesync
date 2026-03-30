@@ -670,9 +670,17 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
+        console.log('[MediaSession] Play button pressed on lock screen');
+        startSilentAudio();
+        
+        if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+          audioCtxRef.current.resume();
+        }
+
         if (playerRef.current) {
           playerRef.current.playVideo();
           setIsPlaying(true);
+          navigator.mediaSession.playbackState = 'playing';
         }
       });
       navigator.mediaSession.setActionHandler('pause', () => {
