@@ -159,13 +159,20 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
 
   useEffect(() => {
     handleEndedRef.current = () => {
-      if (currentTrackIndex < tracks.length - 1) {
-        setCurrentTrackIndex(prev => prev + 1);
+      if (isAutoPlayEnabled) {
+        if (currentTrackIndex < tracks.length - 1) {
+          setCurrentTrackIndex(prev => prev + 1);
+        } else {
+          setIsPlaying(false);
+          // If it's the last track, ensure we also stop the player
+          playerRef.current?.pauseVideo();
+        }
       } else {
         setIsPlaying(false);
+        playerRef.current?.pauseVideo();
       }
     };
-  }, [currentTrackIndex, tracks.length]);
+  }, [currentTrackIndex, tracks.length, isAutoPlayEnabled]);
 
   useEffect(() => {
     // Load YouTube IFrame API
@@ -1592,10 +1599,11 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       </main>
 
       {/* Modern Player Footer */}
-      <footer className="h-[96px] md:h-[90px] bg-[#080808]/95 backdrop-blur-3xl border-t border-white/5 flex-shrink-0 flex items-center px-4 md:px-8 relative z-50">
+      <footer className="bg-[#080808]/95 backdrop-blur-3xl border-t border-white/5 flex-shrink-0 flex flex-col relative z-50">
         {currentTrack ? (
            <>
-              <div className="absolute top-0 left-0 right-0 -translate-y-1/2 h-4 flex items-center group z-[60]">
+              {/* Seekbar Row - Responsive with larger touch area */}
+              <div className="w-full h-8 flex items-center px-4 md:px-8 group relative">
                 <input 
                   type="range"
                   min={0}
@@ -1605,53 +1613,67 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                   onChange={handleSeekChange}
                   onMouseUp={handleSeekEnd}
                   onTouchEnd={handleSeekEnd}
-                  className="w-full h-1 bg-white/10 appearance-none cursor-pointer hover:h-1.5 transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover:[&::-webkit-slider-thumb]:opacity-100"
+                  className="w-full h-1.5 bg-white/10 appearance-none cursor-pointer rounded-full transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-neon [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover:[&::-webkit-slider-thumb]:opacity-100 shadow-neon"
                   style={{
                     background: `linear-gradient(to right, #abfc2f ${((isDraggingSeekRef.current ? seekPreviewTime : currentTime) / (duration || 1)) * 100}%, rgba(255,255,255,0.1) ${((isDraggingSeekRef.current ? seekPreviewTime : currentTime) / (duration || 1)) * 100}%)`
                   }}
                 />
               </div>
 
-              <div className="flex items-center gap-3 md:gap-4 w-[45%] md:w-1/3 min-w-0 pr-2">
-                 <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-                    {currentTrack.thumbnail && <img src={currentTrack.thumbnail} className="w-full h-full object-cover" />}
+              {/* Controls Row */}
+              <div className="h-[64px] md:h-[70px] flex items-center px-4 md:px-8">
+                <div className="flex items-center gap-3 md:gap-4 w-[45%] md:w-1/3 min-w-0 pr-2">
+                   <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+                      {currentTrack.thumbnail && <img src={currentTrack.thumbnail} className="w-full h-full object-cover" />}
+                   </div>
+                   <div className="flex flex-col min-w-0 pr-2">
+                      <span className="text-white text-[13px] md:text-[15px] font-bold truncate leading-tight mb-1 tracking-tight">{currentTrack.title}</span>
+                      <span className="text-gray-500 text-[11px] md:text-[13px] font-medium truncate">{currentTrack.artist}</span>
+                   </div>
                  </div>
-                 <div className="flex flex-col min-w-0 pr-2">
-                    <span className="text-white text-[13px] md:text-[15px] font-bold truncate leading-tight mb-1 tracking-tight">{currentTrack.title}</span>
-                    <span className="text-gray-500 text-[11px] md:text-[13px] font-medium truncate">{currentTrack.artist}</span>
-                 </div>
-               </div>
 
-              <div className="flex-1 flex justify-center items-center gap-4 md:gap-8">
-                 <button onClick={() => { if(currentTrackIndex > 0) setCurrentTrackIndex(i => i-1); }} className="text-gray-500 hover:text-white transition-colors active:scale-90 hidden sm:block p-2">
-                    <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
-                 </button>
-                 <button onClick={() => setIsPlaying(!isPlaying)} className={`w-[52px] h-[52px] rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 ${isPlaying ? 'bg-white text-black hover:bg-gray-200' : 'bg-neon text-black shadow-[0_0_20px_rgba(171,252,47,0.4)] hover:shadow-[0_0_30px_rgba(171,252,47,0.6)]'} active:scale-90`}>
-                   {isPlaying ? (
-                     <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
-                   ) : (
-                     <svg className="w-7 h-7 fill-current pl-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                   )}
-                 </button>
-                 <button onClick={() => { if(currentTrackIndex < tracks.length - 1) setCurrentTrackIndex(i => i+1); }} className="text-gray-500 hover:text-white transition-colors active:scale-90 p-2">
-                    <svg className="w-7 h-7 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path></svg>
-                 </button>
-              </div>
+                <div className="flex-1 flex justify-center items-center gap-4 md:gap-8">
+                   <button onClick={() => { if(currentTrackIndex > 0) setCurrentTrackIndex(i => i-1); }} className="text-gray-500 hover:text-white transition-colors active:scale-90 hidden sm:block p-2">
+                      <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
+                   </button>
+                   <button 
+                     onClick={() => {
+                       if (isPlaying) {
+                         playerRef.current?.pauseVideo();
+                         setIsPlaying(false);
+                       } else {
+                         playerRef.current?.playVideo();
+                         setIsPlaying(true);
+                       }
+                     }} 
+                     className={`w-[48px] h-[48px] md:w-[52px] md:h-[52px] rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 ${isPlaying ? 'bg-white text-black hover:bg-gray-200' : 'bg-neon text-black shadow-[0_0_20px_rgba(171,252,47,0.4)] hover:shadow-[0_0_30px_rgba(171,252,47,0.6)]'} active:scale-90`}
+                   >
+                     {isPlaying ? (
+                       <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+                     ) : (
+                       <svg className="w-7 h-7 fill-current pl-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+                     )}
+                   </button>
+                   <button onClick={() => { if(currentTrackIndex < tracks.length - 1) setCurrentTrackIndex(i => i+1); }} className="text-gray-500 hover:text-white transition-colors active:scale-90 p-2">
+                      <svg className="w-7 h-7 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path></svg>
+                   </button>
+                </div>
 
-              <div className="w-[30%] md:w-1/3 min-w-0 flex justify-end items-center gap-4">
-                 <div className="hidden md:flex text-[11px] font-bold text-gray-400 tracking-wider items-center gap-1.5 font-mono">
-                   <span className="text-white">{formatTime(isDraggingSeekRef.current ? seekPreviewTime : currentTime)}</span>
-                   <span>/</span>
-                   <span>{formatTime(duration)}</span>
-                 </div>
-                 <div className="hidden sm:flex bg-[#111] border border-white/5 rounded-xl px-4 py-2 flex-col items-center whitespace-nowrap">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">TARGET</span>
-                    <span className="text-[16px] font-black text-white leading-tight tabular-nums">{targetBpm}</span>
-                 </div>
+                <div className="w-[30%] md:w-1/3 min-w-0 flex justify-end items-center gap-4">
+                   <div className="flex text-[11px] font-bold text-gray-400 tracking-wider items-center gap-1.5 font-mono">
+                     <span className="text-white">{formatTime(isDraggingSeekRef.current ? seekPreviewTime : currentTime)}</span>
+                     <span>/</span>
+                     <span>{formatTime(duration)}</span>
+                   </div>
+                   <div className="hidden sm:flex bg-[#111] border border-white/5 rounded-xl px-4 py-2 flex-col items-center whitespace-nowrap">
+                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">TARGET</span>
+                      <span className="text-[16px] font-black text-white leading-tight tabular-nums">{targetBpm}</span>
+                   </div>
+                </div>
               </div>
            </>
         ) : (
-           <div className="w-full h-full flex items-center justify-center text-[12px] font-black text-gray-700 tracking-[0.2em] uppercase">
+           <div className="w-full h-[96px] md:h-[90px] flex items-center justify-center text-[12px] font-black text-gray-700 tracking-[0.2em] uppercase">
               Ready to Play
            </div>
         )}
