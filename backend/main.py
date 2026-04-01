@@ -48,29 +48,52 @@ def get_spotify_bpm(title, artist):
         print("Spotify API Credentials missing. Skipping...")
         return None
     try:
+        import re
         auth_manager = SpotifyClientCredentials(client_id=SPOTIFY_CLIENT_ID, client_secret=SPOTIFY_CLIENT_SECRET)
         sp = spotipy.Spotify(auth_manager=auth_manager)
         
-        query = f"track:{title} artist:{artist}"
-        print(f"Spotify Searching: {query}")
-        results = sp.search(q=query, limit=1, type='track')
+        def clean_text(text):
+            # Remove brackets/parentheses contents
+            c = re.sub(r'[\(\[].*?[\)\]]', '', text)
+            # Remove common suffixes like " - Official Audio"
+            c = re.sub(r'(?i)\s*-\s*(official|audio|video|lyric|mv|remaster|radio|edit).*', '', c)
+            return c.strip()
+
+        cleaned_title = clean_text(title)
+        cleaned_artist = clean_text(artist)
         
-        tracks = results.get('tracks', {}).get('items', [])
-        if not tracks:
-            # Try a broader search if specific query fails
-            query_broad = f"{title} {artist}"
-            print(f"Spotify Retrying Broad Search: {query_broad}")
-            results = sp.search(q=query_broad, limit=1, type='track')
+        # Test queries from most specific to broadest
+        queries = [
+            f"track:{title} artist:{artist}",
+            f"{title} {artist}",
+            f"track:{cleaned_title} artist:{cleaned_artist}",
+            f"{cleaned_title} {cleaned_artist}",
+            f"{cleaned_title} {artist}",
+            f"track:{cleaned_title}",
+            f"{cleaned_title}"
+        ]
+        
+        seen_queries = set()
+        for q in queries:
+            q = q.strip()
+            # Avoid redundant searches explicitly
+            if not q or q in seen_queries or q == "track: artist:":
+                continue
+            seen_queries.add(q)
+            
+            print(f"Spotify Searching: {q}")
+            results = sp.search(q=q, limit=1, type='track')
             tracks = results.get('tracks', {}).get('items', [])
             
-        if tracks:
-            track_id = tracks[0]['id']
-            features = sp.audio_features([track_id])
-            if features and features[0]:
-                tempo = features[0].get('tempo')
-                if tempo:
-                    print(f"Spotify Found: {tempo} BPM")
-                    return float(tempo)
+            if tracks:
+                track_id = tracks[0]['id']
+                features = sp.audio_features([track_id])
+                if features and features[0]:
+                    tempo = features[0].get('tempo')
+                    if tempo:
+                        print(f"Spotify Found: {tempo} BPM (Query: '{q}')")
+                        return float(tempo)
+                
     except Exception as e:
         print(f"Spotify API error: {e}")
     return None

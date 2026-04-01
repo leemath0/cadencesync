@@ -112,7 +112,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const [selectedPlaylistId, setSelectedPlaylistId] = useState<string>('');
   const [authCodeProcessed, setAuthCodeProcessed] = useState(false);
   const [isLoadingFull, setIsLoadingFull] = useState(false);
-  const [activeTab, setActiveTab] = useState<'session' | 'statistics'>('session');
+
   
   // YouTube IFrame Player Refs
   const playerRef = useRef<any>(null);
@@ -124,6 +124,18 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const [newBpm, setNewBpm] = useState<number>(0);
   const [lastSyncError, setLastSyncError] = useState<number>(0);
   const [currentMeasure, setCurrentMeasure] = useState<string>('---');
+
+  const handleEndedRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    handleEndedRef.current = () => {
+      if (currentTrackIndex < tracks.length - 1) {
+        setCurrentTrackIndex(prev => prev + 1);
+      } else {
+        setIsPlaying(false);
+      }
+    };
+  }, [currentTrackIndex, tracks.length]);
 
   useEffect(() => {
     // Load YouTube IFrame API
@@ -152,7 +164,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
               // Playing: 1, Paused: 2, Ended: 0
               if (event.data === 1) setIsPlaying(true);
               else if (event.data === 2) setIsPlaying(false);
-              else if (event.data === 0) handleEnded();
+              else if (event.data === 0) handleEndedRef.current();
             }
           }
         });
@@ -553,7 +565,8 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
             // If metronome is on, request sync-start for the new track automatically
             if (metronomeOn) {
                 syncStartRequestedRef.current = true;
-                playerRef.current.cueVideoById(currentTrack.id);
+                playerRef.current.loadVideoById(currentTrack.id);
+                playerRef.current.pauseVideo();
                 setToast({ message: "Auto-Play: Waiting for next beat to start...", type: 'success' });
             } else {
                 playerRef.current.loadVideoById(currentTrack.id);
@@ -574,13 +587,6 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   }, [currentTrackIndex, isAutoPlayEnabled, metronomeOn, currentTrack]);
 
   // DJ-style: When user hits Play, we wait for the NEXT beat to actually start the audio
-  const handleEnded = () => {
-    if (currentTrackIndex < tracks.length - 1) {
-      setCurrentTrackIndex(prev => prev + 1);
-    } else {
-      setIsPlaying(false);
-    }
-  };
 
   const audioCtxRef = useRef<AudioContext | null>(null);
   const nextTickTimeRef = useRef<number>(0);
