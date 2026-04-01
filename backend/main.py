@@ -55,29 +55,29 @@ def get_spotify_bpm(title, artist):
         def clean_text(text):
             # Remove brackets/parentheses contents
             c = re.sub(r'[\(\[].*?[\)\]]', '', text)
-            # Remove common suffixes like " - Official Audio"
-            c = re.sub(r'(?i)\s*-\s*(official|audio|video|lyric|mv|remaster|radio|edit).*', '', c)
+            # Remove common suffixes like " - Official Audio", "- Topic", etc.
+            c = re.sub(r'(?i)\s*-\s*(official|audio|video|lyric|mv|remaster|radio|edit|topic).*', '', c)
             return c.strip()
 
         cleaned_title = clean_text(title)
         cleaned_artist = clean_text(artist)
         
-        # Test queries from most specific to broadest
-        queries = [
-            f"track:{title} artist:{artist}",
-            f"{title} {artist}",
-            f"track:{cleaned_title} artist:{cleaned_artist}",
-            f"{cleaned_title} {cleaned_artist}",
-            f"{cleaned_title} {artist}",
-            f"track:{cleaned_title}",
-            f"{cleaned_title}"
-        ]
+        # 3-Stage Search Logic
+        # Stage 1: Track title + Artist name (Cleaned)
+        queries = [f"track:{cleaned_title} artist:{cleaned_artist}"]
         
+        # Stage 2: Track title only (Cleaned)
+        queries.append(f"track:{cleaned_title}")
+        
+        # Stage 3: Track title (Further cleaned of brackets) only
+        # (Though clean_text already removes brackets, let's ensure it's simple)
+        if "(" in title or "[" in title:
+             queries.append(cleaned_title)
+
         seen_queries = set()
         for q in queries:
             q = q.strip()
-            # Avoid redundant searches explicitly
-            if not q or q in seen_queries or q == "track: artist:":
+            if not q or q in seen_queries or q == "track: artist:" or q == "track:":
                 continue
             seen_queries.add(q)
             

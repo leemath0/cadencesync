@@ -125,6 +125,36 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const [lastSyncError, setLastSyncError] = useState<number>(0);
   const [currentMeasure, setCurrentMeasure] = useState<string>('---');
 
+  // Playback Timeline States
+  const [currentTime, setCurrentTime] = useState<number>(0);
+  const [duration, setDuration] = useState<number>(0);
+  const isDraggingSeekRef = useRef(false);
+  const [seekPreviewTime, setSeekPreviewTime] = useState<number>(0);
+
+  const formatTime = (seconds: number) => {
+    if (isNaN(seconds) || seconds < 0) return '0:00';
+    const m = Math.floor(seconds / 60);
+    const s = Math.floor(seconds % 60);
+    return `${m}:${s < 10 ? '0' : ''}${s}`;
+  };
+
+  const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    isDraggingSeekRef.current = true;
+    setSeekPreviewTime(Number(e.target.value));
+  };
+
+  const handleSeekEnd = (e: any) => {
+    const val = Number(e.target.value);
+    if (playerRef.current && playerRef.current.seekTo) {
+      playerRef.current.seekTo(val, true);
+    }
+    setCurrentTime(val);
+    setTimeout(() => { isDraggingSeekRef.current = false; }, 100);
+  };
+
+
+
+
   const handleEndedRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -846,10 +876,8 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           } else {
             setCurrentMeasure(`${measure}M-${beatInMeasure}`);
           }
-      } else if (isPlaying && player && player.getPlaybackRate) {
-          setCurrentMeasure('---');
       }
-
+      
       if (syncStartRequestedRef.current && player) {
           if (ctxTime >= upcomingBeatTimeRef.current - 0.05) {
               player.playVideo();
@@ -867,6 +895,32 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       window.removeEventListener('click', handleInteraction);
     };
   }, [isPlaying, targetBpm, metronomeOn, currentTrackIndex, metronomeVolume, playbackMode]);
+  
+  // Dedicated Timeline Update Effect
+  useEffect(() => {
+    let timer: any;
+    const updateTimeline = () => {
+      if (playerRef.current && playerRef.current.getCurrentTime && !isDraggingSeekRef.current) {
+        const cTime = playerRef.current.getCurrentTime();
+        if (typeof cTime === 'number') setCurrentTime(cTime);
+        
+        const dTime = playerRef.current.getDuration();
+        if (typeof dTime === 'number' && dTime > 0) {
+          setDuration(dTime);
+        }
+      }
+    };
+
+    if (isPlaying) {
+      // Immediate update when starting
+      updateTimeline();
+      timer = setInterval(updateTimeline, 1000);
+    }
+    
+    return () => {
+      if (timer) clearInterval(timer);
+    };
+  }, [isPlaying, currentTrackIndex]);
 
   useEffect(() => {
     if (playerRef.current && currentTrack && currentTrack.originalBpm) {
@@ -1541,6 +1595,23 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       <footer className="h-[96px] md:h-[90px] bg-[#080808]/95 backdrop-blur-3xl border-t border-white/5 flex-shrink-0 flex items-center px-4 md:px-8 relative z-50">
         {currentTrack ? (
            <>
+              <div className="absolute top-0 left-0 right-0 -translate-y-1/2 h-4 flex items-center group z-[60]">
+                <input 
+                  type="range"
+                  min={0}
+                  max={duration || 100}
+                  step="0.1"
+                  value={isDraggingSeekRef.current ? seekPreviewTime : currentTime}
+                  onChange={handleSeekChange}
+                  onMouseUp={handleSeekEnd}
+                  onTouchEnd={handleSeekEnd}
+                  className="w-full h-1 bg-white/10 appearance-none cursor-pointer hover:h-1.5 transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover:[&::-webkit-slider-thumb]:opacity-100"
+                  style={{
+                    background: `linear-gradient(to right, #abfc2f ${((isDraggingSeekRef.current ? seekPreviewTime : currentTime) / (duration || 1)) * 100}%, rgba(255,255,255,0.1) ${((isDraggingSeekRef.current ? seekPreviewTime : currentTime) / (duration || 1)) * 100}%)`
+                  }}
+                />
+              </div>
+
               <div className="flex items-center gap-3 md:gap-4 w-[45%] md:w-1/3 min-w-0 pr-2">
                  <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
                     {currentTrack.thumbnail && <img src={currentTrack.thumbnail} className="w-full h-full object-cover" />}
@@ -1568,6 +1639,11 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
               </div>
 
               <div className="w-[30%] md:w-1/3 min-w-0 flex justify-end items-center gap-4">
+                 <div className="hidden md:flex text-[11px] font-bold text-gray-400 tracking-wider items-center gap-1.5 font-mono">
+                   <span className="text-white">{formatTime(isDraggingSeekRef.current ? seekPreviewTime : currentTime)}</span>
+                   <span>/</span>
+                   <span>{formatTime(duration)}</span>
+                 </div>
                  <div className="hidden sm:flex bg-[#111] border border-white/5 rounded-xl px-4 py-2 flex-col items-center whitespace-nowrap">
                     <span className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">TARGET</span>
                     <span className="text-[16px] font-black text-white leading-tight tabular-nums">{targetBpm}</span>
