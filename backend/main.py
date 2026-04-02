@@ -595,17 +595,17 @@ def get_bpm_fallback(title, artist, video_id=None):
     # 1. Spotify Audio Features API (Priority 1)
     spotify_bpm = get_spotify_bpm(title, artist)
     if spotify_bpm:
-        return spotify_bpm
+        return spotify_bpm, "Spotify"
 
     # 2. GetSongBPM API (Priority 2)
     getsongbpm_bpm = get_getsongbpm_bpm(title, artist)
     if getsongbpm_bpm:
-        return getsongbpm_bpm
+        return getsongbpm_bpm, "GetSongBPM"
 
     # 3. Popular songs mapping (Priority 3) - ID based then Keyword
     if video_id and video_id in popular_map:
         print(f"Direct ID match success: {video_id} -> {popular_map[video_id]}")
-        return popular_map[video_id]
+        return popular_map[video_id], "Manual"
 
     search_q = f"{title} {artist}".lower()
     for key, bpm in popular_map.items():
@@ -614,7 +614,7 @@ def get_bpm_fallback(title, artist, video_id=None):
             continue
         if key in search_q:
             print(f"Intelligent keyword match success: {key} -> {bpm}")
-            return bpm
+            return bpm, "Manual"
 
     # 4. MusicBrainz API search (Priority 4)
     try:
@@ -623,11 +623,11 @@ def get_bpm_fallback(title, artist, video_id=None):
         for rec in result.get('recording-list', []):
             bpm = rec.get('bpm')
             if bpm:
-                return float(bpm)
+                return float(bpm), "MusicBrainz"
     except Exception as e:
         print(f"MusicBrainz search error: {e}")
         
-    return None
+    return None, None
 
 @app.post("/api/analyze")
 async def analyze_track(request: AnalyzeRequest, response: Response):
@@ -685,10 +685,10 @@ async def analyze_track(request: AnalyzeRequest, response: Response):
         
         # 1.5. Check Priority Fallback (Popular Map / MusicBrainz)
         v_id = get_video_id(request.url)
-        fallback_bpm = get_bpm_fallback(title, artist, v_id)
+        fallback_bpm, source = get_bpm_fallback(title, artist, v_id)
         if fallback_bpm:
-            print(f"Priority fallback successful: {fallback_bpm} BPM")
-            return {"bpm": round(fallback_bpm), "firstBeatOffset": 0.0, "note": "priority fallback", "title": title}
+            print(f"Priority fallback successful: {fallback_bpm} BPM (Source: {source})")
+            return {"bpm": round(fallback_bpm), "firstBeatOffset": 0.0, "note": f"priority fallback ({source})", "title": title, "source": source}
 
         # 2. Download and Analyze (Reduced-point sampling for stability on Render)
         duration = info.get('duration', 0) if info else 0
@@ -783,6 +783,7 @@ async def analyze_track(request: AnalyzeRequest, response: Response):
                     "samples": [float(b) for b in detected_bpms], 
                     "title": title,
                     "confidence": 1.0 / (1.0 + min_error / len(detected_beat_times)) if detected_beat_times else 0.0,
+                    "source": "Analysis",
                     "cached": False
                 }
 

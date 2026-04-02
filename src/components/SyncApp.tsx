@@ -17,6 +17,7 @@ type Track = {
   errorMessage?: string;
   harmonicOffset?: number;
   isOriginalSpeed?: boolean;
+  source?: string;
 };
 
 // --- Components ---
@@ -482,7 +483,8 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
             ...t, 
             status: 'optimized', 
             originalBpm: bpmData.bpm,
-            firstBeatOffset: bpmData.firstBeatOffset || 0
+            firstBeatOffset: bpmData.firstBeatOffset || 0,
+            source: bpmData.source
           } : t));
         } catch (err: any) {
           setTracks(current => current.map(t => t.id === track.id ? { 
@@ -1018,7 +1020,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
           
           <div className="space-y-1.5 opacity-90">
             <div className="flex justify-between"><span>Wall Clock</span> <span>{(playerRef.current?.getCurrentTime?.() || 0).toFixed(2)}s</span></div>
-            <div className="flex justify-between"><span>Detected BPM</span> <span>{(currentTrack?.originalBpm != null) ? Number(currentTrack.originalBpm).toFixed(1) : '---'}</span></div>
+            <div className="flex justify-between"><span>Detected BPM</span> <span>{(currentTrack?.originalBpm != null) ? Number(currentTrack.originalBpm).toFixed(1) : '---'} {currentTrack?.source && <span className="opacity-50 text-[9px]">({currentTrack.source})</span>}</span></div>
             <div className="flex justify-between"><span>Beat Offset</span> <span>{(currentTrack?.firstBeatOffset != null) ? Number(currentTrack.firstBeatOffset).toFixed(3) : '---'}s</span></div>
             <div className="flex justify-between text-[#88ff88] font-bold"><span>1M-2M Count</span> <span className="tabular-nums">{currentMeasure}</span></div>
           </div>
@@ -1562,7 +1564,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                                              </button>
                                           </div>
                                           <span className="text-[10px] md:text-[11px] font-bold text-gray-500 tracking-tighter uppercase whitespace-nowrap">
-                                             Orig: {Math.round(track.originalBpm || 0)} BPM
+                                             Orig: {Math.round(track.originalBpm || 0)} BPM {track.source && <span className="opacity-60 text-[9px]">[{track.source}]</span>}
                                           </span>
                                        </>
                                     )}
