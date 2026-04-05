@@ -64,6 +64,114 @@ const TapBpm = ({ onBpmChange }: { onBpmChange: (bpm: number) => void }) => {
   );
 };
 
+interface PlayerFooterProps {
+  currentTrack: Track | null;
+  currentTime: number;
+  duration: number;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+  onSeekChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  onSeekEnd: (e: any) => void;
+  targetBpm: number;
+  formatTime: (time: number | undefined) => string;
+}
+
+
+const PlayerFooter = ({ 
+  currentTrack, 
+  currentTime, 
+  duration, 
+  isPlaying, 
+  onTogglePlay, 
+  onPrev, 
+  onNext, 
+  onSeekChange,
+  onSeekEnd,
+  targetBpm,
+  formatTime
+}: PlayerFooterProps) => {
+  if (!currentTrack) {
+    return (
+      <footer className="bg-[#080808]/95 backdrop-blur-3xl border-t border-white/5 flex-shrink-0 flex flex-col relative z-50">
+        <div className="w-full h-[96px] md:h-[90px] flex items-center justify-center text-[12px] font-black text-gray-700 tracking-[0.2em] uppercase">
+          Ready to Play
+        </div>
+      </footer>
+    );
+  }
+
+  return (
+    <footer className="bg-[#080808]/95 backdrop-blur-3xl border-t border-white/5 flex-shrink-0 flex flex-col relative z-50">
+      <div className="w-full h-8 flex items-center px-4 md:px-8 group relative">
+        <input 
+          type="range"
+          min={0}
+          max={duration || 100}
+          step="0.1"
+          value={currentTime}
+          onChange={onSeekChange}
+          onMouseUp={onSeekEnd}
+          onKeyUp={onSeekEnd}
+          onTouchEnd={onSeekEnd}
+          className="w-full h-1.5 bg-white/10 appearance-none cursor-pointer rounded-full transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-neon [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover:[&::-webkit-slider-thumb]:opacity-100 shadow-neon"
+          style={{
+            background: `linear-gradient(to right, #abfc2f ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.1) ${(currentTime / (duration || 1)) * 100}%)`
+          }}
+        />
+      </div>
+
+
+      <div className="h-[64px] md:h-[70px] flex items-center px-4 md:px-8">
+        <div className="flex items-center gap-3 md:gap-4 w-[45%] md:w-1/3 min-w-0 pr-2">
+          <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
+            {currentTrack.thumbnail && <img src={currentTrack.thumbnail} className="w-full h-full object-cover" alt="" />}
+          </div>
+          <div className="flex flex-col min-w-0 pr-2">
+            <span className="text-white text-[13px] md:text-[15px] font-bold truncate leading-tight mb-1 tracking-tight">{currentTrack.title}</span>
+            <span className="text-gray-500 text-[11px] md:text-[13px] font-medium truncate">{currentTrack.artist}</span>
+          </div>
+        </div>
+
+        <div className="flex-1 flex justify-center items-center gap-4 md:gap-8">
+          <button onClick={onPrev} className="text-gray-500 hover:text-white transition-colors active:scale-90 hidden sm:block p-2">
+            <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
+          </button>
+          <button 
+            onClick={onTogglePlay} 
+            className={`w-[48px] h-[48px] md:w-[52px] md:h-[52px] rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 ${isPlaying ? 'bg-white text-black hover:bg-gray-200' : 'bg-neon text-black shadow-[0_0_20px_rgba(171,252,47,0.4)] hover:shadow-[0_0_30px_rgba(171,252,47,0.6)]'} active:scale-90`}
+          >
+            {isPlaying ? (
+              <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
+            ) : (
+              <svg className="w-7 h-7 fill-current pl-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
+            )}
+          </button>
+          <button onClick={onNext} className="text-gray-500 hover:text-white transition-colors active:scale-90 p-2">
+            <svg className="w-7 h-7 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path></svg>
+          </button>
+        </div>
+
+        <div className="w-[30%] md:w-1/3 min-w-0 flex justify-end items-center gap-4">
+          <div className="flex text-[11px] font-bold text-gray-400 tracking-wider items-center gap-1.5 font-mono">
+            <span className="text-white">{formatTime(currentTime)}</span>
+
+            <span>/</span>
+            <span>{formatTime(duration)}</span>
+          </div>
+          <div className="hidden sm:flex bg-[#111] border border-white/5 rounded-xl px-4 py-2 flex-col items-center whitespace-nowrap">
+            <span className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">TARGET</span>
+            <span className="text-[16px] font-black text-white leading-tight tabular-nums">{targetBpm}</span>
+          </div>
+        </div>
+      </div>
+      <a href="https://getsongbpm.com" style={{ display: 'none' }}>GetSongBPM</a>
+    </footer>
+  );
+};
+
+
 
 const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const [targetBpm, setTargetBpm] = useState(168);
@@ -127,20 +235,23 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   const [currentMeasure, setCurrentMeasure] = useState<string>('---');
 
   // Playback Timeline States
-  const [currentTime, setCurrentTime] = useState<number>(0);
-  const [duration, setDuration] = useState<number>(0);
-  const isDraggingSeekRef = useRef(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const isYoutubeApiReady = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
   const [seekPreviewTime, setSeekPreviewTime] = useState<number>(0);
 
-  const formatTime = (seconds: number) => {
-    if (isNaN(seconds) || seconds < 0) return '0:00';
+
+  const formatTime = (seconds: number | undefined) => {
+    if (seconds === undefined || isNaN(seconds) || seconds < 0) return '0:00';
+
     const m = Math.floor(seconds / 60);
     const s = Math.floor(seconds % 60);
     return `${m}:${s < 10 ? '0' : ''}${s}`;
   };
 
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    isDraggingSeekRef.current = true;
+    setIsDragging(true);
     setSeekPreviewTime(Number(e.target.value));
   };
 
@@ -150,24 +261,42 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       playerRef.current.seekTo(val, true);
     }
     setCurrentTime(val);
-    setTimeout(() => { isDraggingSeekRef.current = false; }, 100);
+    setTimeout(() => { setIsDragging(false); }, 100);
   };
 
 
 
 
+  const playNextRef = useRef<() => void>(() => {});
+
+  useEffect(() => {
+    playNextRef.current = () => {
+      setCurrentTrackIndex(prev =>
+        prev < tracks.length - 1 ? prev + 1 : prev
+      );
+    };
+  }, [tracks.length]);
+
   const handleEndedRef = useRef<() => void>(() => {});
+
+  const togglePlay = () => {
+    if (!playerRef.current) {
+      console.warn('[togglePlay] playerRef is null');
+      return;
+    }
+    if (isPlaying) {
+      playerRef.current.pauseVideo();
+      setIsPlaying(false);
+    } else {
+      playerRef.current.playVideo();
+      setIsPlaying(true);
+    }
+  };
 
   useEffect(() => {
     handleEndedRef.current = () => {
       if (isAutoPlayEnabled) {
-        if (currentTrackIndex < tracks.length - 1) {
-          setCurrentTrackIndex(prev => prev + 1);
-        } else {
-          setIsPlaying(false);
-          // If it's the last track, ensure we also stop the player
-          playerRef.current?.pauseVideo();
-        }
+        playNextRef.current();
       } else {
         setIsPlaying(false);
         playerRef.current?.pauseVideo();
@@ -176,37 +305,55 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   }, [currentTrackIndex, tracks.length, isAutoPlayEnabled]);
 
   useEffect(() => {
-    // Load YouTube IFrame API
-    if (!(window as any).YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    if (isYoutubeApiReady.current) return;
+    
+    // Check if tag already exists
+    const existingScript = document.getElementById('youtube-iframe-api');
+    if (existingScript) {
+      isYoutubeApiReady.current = true;
+      return;
+    }
 
-      (window as any).onYouTubeIframeAPIReady = () => {
-        playerRef.current = new (window as any).YT.Player('yt-player', {
-          height: '0',
-          width: '0',
-          playerVars: {
-            'autoplay': 0,
-            'controls': 0,
-            'disablekb': 1,
-            'fs': 0,
-            'modestbranding': 1,
-            'rel': 0,
-            'showinfo': 0
-          },
-          events: {
-            'onReady': () => { playerReady.current = true; },
-            'onStateChange': (event: any) => {
-              // Playing: 1, Paused: 2, Ended: 0
-              if (event.data === 1) setIsPlaying(true);
-              else if (event.data === 2) setIsPlaying(false);
-              else if (event.data === 0) handleEndedRef.current();
-            }
+    const tag = document.createElement('script');
+    tag.id = 'youtube-iframe-api';
+    tag.src = "https://www.youtube.com/iframe_api";
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+    isYoutubeApiReady.current = true;
+  }, []);
+
+  useEffect(() => {
+    // Initial check for YouTube API
+    const initPlayer = () => {
+      if (playerRef.current) return;
+      playerRef.current = new (window as any).YT.Player('yt-player', {
+        height: '0',
+        width: '0',
+        playerVars: {
+          'autoplay': 0,
+          'controls': 0,
+          'disablekb': 1,
+          'fs': 0,
+          'modestbranding': 1,
+          'rel': 0,
+          'showinfo': 0
+        },
+        events: {
+          'onReady': () => { playerReady.current = true; },
+          'onStateChange': (event: any) => {
+            // Playing: 1, Paused: 2, Ended: 0
+            if (event.data === 1) setIsPlaying(true);
+            else if (event.data === 2) setIsPlaying(false);
+            else if (event.data === 0) handleEndedRef.current();
           }
-        });
-      };
+        }
+      });
+    };
+
+    if ((window as any).YT && (window as any).YT.Player) {
+      initPlayer();
+    } else {
+      (window as any).onYouTubeIframeAPIReady = initPlayer;
     }
   }, []);
 
@@ -444,7 +591,24 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
       
       if (!res.ok) {
         const errorData = await res.json();
-        throw new Error(errorData.detail || "Failed to fetch playlist");
+        
+        // --- FALLBACK LOGIC ---
+        // If it was a playlist and failed with 401 (Auth), try the public fallback (/api/playlist)
+        if (playlistId && res.status === 401) {
+          console.log("Official API failed (unauthorized). Falling back to public extractor...");
+          res = await fetch('/api/playlist', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ url })
+          });
+          
+          if (!res.ok) {
+             const fallbackError = await res.json();
+             throw new Error(fallbackError.detail || "Failed to fetch playlist with fallback");
+          }
+        } else {
+          throw new Error(errorData.detail || "Failed to fetch playlist");
+        }
       }
       
       const data = await res.json();
@@ -588,18 +752,9 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
             return;
         }
         lastProcessedTrackIdRef.current = currentTrack.id;
-        // ----------------------------------------------------------
-
-        if (currentTrack.status === 'error') {
-            // Skip error track
-            const nextIdx = (currentTrackIndex + 1) % tracks.length;
-            if (nextIdx !== currentTrackIndex) {
-                setCurrentTrackIndex(nextIdx);
-            }
-            return;
-        }
 
         // Handle change based on Auto-Play setting
+
         if (isAutoPlayEnabled) {
             // If metronome is on, request sync-start for the new track automatically
             if (metronomeOn) {
@@ -909,7 +1064,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
   useEffect(() => {
     let timer: any;
     const updateTimeline = () => {
-      if (playerRef.current && playerRef.current.getCurrentTime && !isDraggingSeekRef.current) {
+      if (playerRef.current && playerRef.current.getCurrentTime && !isDragging) {
         const cTime = playerRef.current.getCurrentTime();
         if (typeof cTime === 'number') setCurrentTime(cTime);
         
@@ -1269,6 +1424,7 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
                     step="1"
                     value={targetBpm}
                     onChange={(e) => setTargetBpm(Number(e.target.value))}
+
                     className="w-full h-1.5 bg-white/10 rounded-lg appearance-none cursor-pointer accent-neon hover:accent-neon/80 transition-all"
                   />
                   <div className="flex justify-between mt-2 px-1">
@@ -1600,87 +1756,25 @@ const SyncApp = ({ onBack }: { onBack: () => void }) => {
 
       </main>
 
-      {/* Modern Player Footer */}
-      <footer className="bg-[#080808]/95 backdrop-blur-3xl border-t border-white/5 flex-shrink-0 flex flex-col relative z-50">
-        {currentTrack ? (
-           <>
-              {/* Seekbar Row - Responsive with larger touch area */}
-              <div className="w-full h-8 flex items-center px-4 md:px-8 group relative">
-                <input 
-                  type="range"
-                  min={0}
-                  max={duration || 100}
-                  step="0.1"
-                  value={isDraggingSeekRef.current ? seekPreviewTime : currentTime}
-                  onChange={handleSeekChange}
-                  onMouseUp={handleSeekEnd}
-                  onTouchEnd={handleSeekEnd}
-                  className="w-full h-1.5 bg-white/10 appearance-none cursor-pointer rounded-full transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3.5 [&::-webkit-slider-thumb]:h-3.5 [&::-webkit-slider-thumb]:bg-neon [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:opacity-0 group-hover:[&::-webkit-slider-thumb]:opacity-100 shadow-neon"
-                  style={{
-                    background: `linear-gradient(to right, #abfc2f ${((isDraggingSeekRef.current ? seekPreviewTime : currentTime) / (duration || 1)) * 100}%, rgba(255,255,255,0.1) ${((isDraggingSeekRef.current ? seekPreviewTime : currentTime) / (duration || 1)) * 100}%)`
-                  }}
-                />
-              </div>
+      <PlayerFooter 
+        currentTrack={currentTrack}
+        currentTime={isDragging ? seekPreviewTime : currentTime}
+        duration={duration}
+        isPlaying={isPlaying}
+        onTogglePlay={togglePlay}
+        onPrev={playPrevious}
+        onNext={playNext}
+        onSeekChange={handleSeekChange}
+        onSeekEnd={handleSeekEnd}
+        targetBpm={targetBpm}
+        formatTime={formatTime}
+      />
 
-              {/* Controls Row */}
-              <div className="h-[64px] md:h-[70px] flex items-center px-4 md:px-8">
-                <div className="flex items-center gap-3 md:gap-4 w-[45%] md:w-1/3 min-w-0 pr-2">
-                   <div className="w-12 h-12 md:w-14 md:h-14 bg-black rounded-lg overflow-hidden flex-shrink-0 shadow-[0_4px_10px_rgba(0,0,0,0.5)]">
-                      {currentTrack.thumbnail && <img src={currentTrack.thumbnail} className="w-full h-full object-cover" />}
-                   </div>
-                   <div className="flex flex-col min-w-0 pr-2">
-                      <span className="text-white text-[13px] md:text-[15px] font-bold truncate leading-tight mb-1 tracking-tight">{currentTrack.title}</span>
-                      <span className="text-gray-500 text-[11px] md:text-[13px] font-medium truncate">{currentTrack.artist}</span>
-                   </div>
-                 </div>
 
-                <div className="flex-1 flex justify-center items-center gap-4 md:gap-8">
-                   <button onClick={() => { if(currentTrackIndex > 0) setCurrentTrackIndex(i => i-1); }} className="text-gray-500 hover:text-white transition-colors active:scale-90 hidden sm:block p-2">
-                      <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"></path></svg>
-                   </button>
-                   <button 
-                     onClick={() => {
-                       if (isPlaying) {
-                         playerRef.current?.pauseVideo();
-                         setIsPlaying(false);
-                       } else {
-                         playerRef.current?.playVideo();
-                         setIsPlaying(true);
-                       }
-                     }} 
-                     className={`w-[48px] h-[48px] md:w-[52px] md:h-[52px] rounded-full flex items-center justify-center transition-all duration-300 flex-shrink-0 ${isPlaying ? 'bg-white text-black hover:bg-gray-200' : 'bg-neon text-black shadow-[0_0_20px_rgba(171,252,47,0.4)] hover:shadow-[0_0_30px_rgba(171,252,47,0.6)]'} active:scale-90`}
-                   >
-                     {isPlaying ? (
-                       <svg className="w-6 h-6 fill-current" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"></path></svg>
-                     ) : (
-                       <svg className="w-7 h-7 fill-current pl-1" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></svg>
-                     )}
-                   </button>
-                   <button onClick={() => { if(currentTrackIndex < tracks.length - 1) setCurrentTrackIndex(i => i+1); }} className="text-gray-500 hover:text-white transition-colors active:scale-90 p-2">
-                      <svg className="w-7 h-7 md:w-6 md:h-6 fill-current" viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6v12zM16 6v12h2V6h-2z"></path></svg>
-                   </button>
-                </div>
 
-                <div className="w-[30%] md:w-1/3 min-w-0 flex justify-end items-center gap-4">
-                   <div className="flex text-[11px] font-bold text-gray-400 tracking-wider items-center gap-1.5 font-mono">
-                     <span className="text-white">{formatTime(isDraggingSeekRef.current ? seekPreviewTime : currentTime)}</span>
-                     <span>/</span>
-                     <span>{formatTime(duration)}</span>
-                   </div>
-                   <div className="hidden sm:flex bg-[#111] border border-white/5 rounded-xl px-4 py-2 flex-col items-center whitespace-nowrap">
-                      <span className="text-[9px] font-black uppercase tracking-widest text-gray-500 mb-0.5">TARGET</span>
-                      <span className="text-[16px] font-black text-white leading-tight tabular-nums">{targetBpm}</span>
-                   </div>
-                </div>
-              </div>
-           </>
-        ) : (
-           <div className="w-full h-[96px] md:h-[90px] flex items-center justify-center text-[12px] font-black text-gray-700 tracking-[0.2em] uppercase">
-              Ready to Play
-           </div>
-        )}
+
         <a href="https://getsongbpm.com" style={{ display: 'none' }}>GetSongBPM</a>
-      </footer>
+
       {/* Sync to YouTube Modal */}
       {showSyncModal && (
         <div className="fixed inset-0 bg-black/90 backdrop-blur-md z-[200] flex items-center justify-center p-6">
